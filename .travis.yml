@@ -1,0 +1,30 @@
+sudo: required
+python: "2.7"
+dist: trusty
+services:
+    - docker
+
+env:
+    - IMAGE_NAME=praekeltfoundation/sentry:develop
+    - REGISTRY_USER=praekeltorgdeploy
+    - secure: "WYFZYVtEXc842IkvBGlse8Sw4hO+uzL9gDNwS8Xgl4sP1zA884Orq/nO6OaUNNtfrVtdDOqse9B9BDEPfV2GowcJlWNk/M1k7EY8dLQtgV5LwzecPlmNKCiLEZw67nZ9aYt7YXkcBB2a+YAFF35eB0168CYdfo27okEUrA/sidDQiZPvy6VVZiF9zQm268ryab6LVkxNbWKolEFPKnFMLhemkGfT1FlSkQeNvY95nTwvr7gpolauvyUkT7OlfbownZdTnC8ZkLMm+lctXnnRJKViJ83iyw42+rPDiNmimi5L+9GMVeJMtqvdToq7rzU8a+FM0thbbPaH1iU24XiGETtCGD6mvxbpzT98j9SlC3c1EY2lij4hnV6nv+34SPk0SkKne7M1hqEQNAL4I0WI83cvh0eGVySVbd/0ICRBuO7dfZaKOte1eJkHR3oI266t5WiGPUqo066Daa0hzvlLMd7/2VeV+7VHho55C8b/4fdCSJaI59uLrDbC2mb9sQWqhSGdoBbGclw6zvXjQaQgZlItyj27qMIeHqhcLi9HHRa2dLBkZgwcYJkrdTM8GzNXTtAcQWAK6h6I5SJF3/vhaHjj1G0/KNFYRmlZYNAjNFiY3LvIbnViHXjdQSIGr74fB7w6q0YQKhRSmg/eD1E6OXSau1EpZmXadfb0QyOumBQ="
+
+# Update Docker Engine
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install -qy -o Dpkg::Options::="--force-confold" docker-engine
+
+before_script:
+    - docker pull "$IMAGE_NAME" || true
+script:
+    - ./test.sh
+    - docker build --tag "$IMAGE_NAME" --cache-from "$IMAGE_NAME" .
+
+before_deploy:
+    - pip install docker-ci-deploy==0.3.0
+    - docker login -u "$REGISTRY_USER" -p "$REGISTRY_PASS" 
+deploy:
+    provider: script
+    script: dcd --version "$(git rev-parse --short HEAD)" --version-latest "$IMAGE_NAME"
+    on:
+        branch: develop
